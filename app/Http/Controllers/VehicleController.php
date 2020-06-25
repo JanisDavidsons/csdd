@@ -35,7 +35,7 @@ class VehicleController extends Controller
         return response()->json(
             [
                 'vehicle' => $vehicle,
-                'message' => 'Vehicle has been created!'
+                'message' => 'Vehicle has been added!'
             ]
         );
     }
@@ -48,10 +48,8 @@ class VehicleController extends Controller
             ]
         );
 
-        $vehicles = Vehicle::where('datums', '>=', $request->datetime)->where(
-            $request->datetime,
-            '<=',
-            's_datums'
+        $vehicles = Vehicle::where('datums', '>=', $request->datetime)
+            ->where($request->datetime, '<=', 's_datums'
         )->get();
 
         return response()->json(

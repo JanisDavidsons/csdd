@@ -8,20 +8,21 @@
                     </div>
                     <div class="d-flex col-md-9 justify-content-between">
                         <button @click="filter" class="btn btn-primary ml-2">Filter</button>
-                        <button @click="loadCreateModal" class="btn btn-primary">Add New vehicle</button>
+                        <button @click="loadCreateWindow" class="btn btn-primary">Add New vehicle</button>
                     </div>
-
                 </div>
-                <table class="table">
+                <table class="table table-bordered mb-0">
                     <thead>
                     <tr>
-                        <th>vieta</th>
-                        <th v-for="col in columns">{{col}}</th>
+                        <th class="text-center pl-0 pr-0">Gate</th>
+                        <th class="text-center" v-for="col in columns">{{col}}</th>
                     </tr>
                     </thead>
                 </table>
-                <div v-if="loading">
-                    <img class="rounded mx-auto d-block" :src="image" alt="loader">
+                <div class="vld-parent">
+                    <loading :active.sync="isLoading"
+                             :can-cancel="false"
+                             :is-full-page="fullPage"></loading>
                 </div>
                 <grid-layout
                     :layout=layout
@@ -31,17 +32,16 @@
                     :is-resizable=false
                     :vertical-compact=true
                     :minH=40
-                    :maxRows=13
                 >
                     <grid-item v-for="item in layout" :key="item.id"
                                :numberPlate=item.numPlate
                                :x=item.x
                                :y=item.y
-                               :w=0.8
+                               :w=1
                                :h=1
                                :i=item.numPlate
                     >
-                        <span @click="loadUpdateModal(item.numPlate)" class="text">{{item.numPlate}}</span>
+                        <span @click="loadUpdateWindow(item.numPlate)" class="text">{{item.numPlate}}</span>
                     </grid-item>
                 </grid-layout>
             </div>
@@ -107,14 +107,18 @@
                             <ul class="list-group">
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <p class="font-weight-bold">s_datums: </p>
-                                    <span class="badge badge-primary badge-pill">{{vehicleUpdated.s_datums || "null" }}</span>
+                                    <span
+                                        class="badge badge-primary badge-pill">{{vehicleUpdated.s_datums || "null" }}</span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <p class="font-weight-bold">Gate Nr: </p>
                                     <span class="badge badge-primary badge-pill">{{vehicleUpdated.x}}</span>
                                 </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <p class="font-weight-bold">Table ID: </p>
+                                    <span class="badge badge-primary badge-pill">{{vehicleUpdated.tableId}}</span>
+                                </li>
                             </ul>
-
                         </div>
                         <div class="modal-footer">
                             <div v-if="!vehicleUpdated.s_datums">
@@ -138,6 +142,8 @@
     import 'bootstrap/dist/css/bootstrap.css';
     import datePicker from 'vue-bootstrap-datetimepicker';
     import 'pc-bootstrap4-datetimepicker/build/css/bootstrap-datetimepicker.css';
+    import Loading from 'vue-loading-overlay';
+    import 'vue-loading-overlay/dist/vue-loading.css';
 
     let GridLayout = VueGridLayout.GridLayout;
     let GridItem = VueGridLayout.GridItem;
@@ -145,6 +151,8 @@
     export default {
         data() {
             return {
+                isLoading: true,
+                fullPage: true,
                 date: new Date(),
                 options: {
                     format: "YYYY-MM-DD HH:mm:ss",
@@ -164,7 +172,6 @@
                 errors: [],
                 vehicleUpdated: [],
                 image: 'images/loader1.gif',
-                loading: true,
                 toastr: toastr.options = {"positionClass": "toast-top-full-width"},
                 layout: [],
                 rowCounter: [],
@@ -174,10 +181,12 @@
             GridLayout,
             GridItem,
             datePicker,
+            Loading
         },
 
         methods: {
             filter() {
+                this.isLoading = true;
                 axios.post(this.uri + 'filter', {datetime: this.date})
                     .then(response => {
                         this.resetData();
@@ -186,6 +195,7 @@
                             this.add(obj.id, obj.column_id, obj.number_plate, obj.s_datums);
                         }, this)
                         toastr.success(response.data.message);
+                        this.isLoading = false;
                     })
                     .catch(error => {
                         console.log(error.message);
@@ -193,9 +203,12 @@
             },
 
             readJson() {
+                this.isLoading = true;
                 axios.post(this.uri + 'populateDb', {data: this.vehicleData.items})
                     .then(response => {
                         toastr.success(response.data.message);
+                        this.loadVehicles();
+                        this.isLoading = false;
                     })
                     .catch(error => {
                         this.errors = [];
@@ -227,11 +240,11 @@
                 }
             },
 
-            loadCreateModal() {
+            loadCreateWindow() {
                 $("#createWindow").modal("show");
             },
 
-            loadUpdateModal(numPlate) {
+            loadUpdateWindow(numPlate) {
                 this.errors = [];
                 $("#updateWindow").modal("show");
                 this.vehicleUpdated = this.layout.find(obj => {
@@ -243,9 +256,13 @@
                 axios.post(this.uri, {numberPlate: this.vehicle.numberPlate, columnId: this.vehicle.columnId})
                     .then(response => {
                         let newVehicle = response.data.vehicle;
-                        this.add(newVehicle.id, newVehicle.column_id, newVehicle.number_plate);
-                        $("#createWindow").modal("hide");
-                        toastr.success(response.data.message);
+                        if (this.rowCounter[newVehicle.column_id] < this.rows) {
+                            this.add(newVehicle.id, newVehicle.column_id, newVehicle.number_plate);
+                            $("#createWindow").modal("hide");
+                            toastr.success(response.data.message);
+                        } else {
+                            toastr.warning("Column nr " + newVehicle.column_id + " is full !");
+                        }
                     })
                     .catch(error => {
                         this.errors = [];
@@ -277,7 +294,7 @@
             },
 
             deleteVehicle() {
-                let confirmBox = confirm("Do you really want to delete this?");
+                let confirmBox = confirm("Vai izņemt TL " + this.vehicleUpdated.numPlate + " no līnijas?");
                 if (confirmBox == true) {
                     let id = this.vehicleUpdated.tableId;
                     axios.delete(this.uri + id)
@@ -299,7 +316,6 @@
                         this.add(vehicle.id, vehicle.column_id, vehicle.number_plate);
                     }, this)
                 });
-                this.loading = false;
             },
 
             resetData() {
@@ -316,7 +332,7 @@
 
         mounted() {
             this.loadVehicles();
-            console.log(this.layout)
+            this.isLoading = false;
         }
     }
 </script>
