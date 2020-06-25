@@ -1,5 +1,11 @@
 
-# CSDD data sorting task.
+# JSON data sorting task.
+
+This is a single-page website, that reads JSON file, processes it, and stores vehicle data in the database.
+Laravel is used as a framework, together with vue.js and Axios to make an HTTP request to the backend without page refresh. 
+Vehicles are sorted in columns depending on data fetched from the database. Max allowed rows are 14. 
+Each vehicle can be edited and moved from one column to another. Vehicles, where s_datums value is null
+can be removed from the table. 
     
  Please follow instructions below to run it on your local environment.
 
@@ -49,3 +55,5 @@
 Sample of the project:
 
    ![git demo](sampleImg/sample.gif)
+   
+    https://youtu.be/9lV6NrncEDA
