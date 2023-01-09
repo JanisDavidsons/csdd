@@ -21,7 +21,7 @@
     },
     "dependencies": {
         "@angular/animations": "^10.0.0",
-        "luxon": "^1.24.1",
+        "luxon": "^1.28.1",
         "moment": "^2.27.0",
         "ngx-toastr": "^12.1.0",
         "node-sass": "^4.14.1",
